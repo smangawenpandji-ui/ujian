@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Penilaian Ujian Siswa</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4338CA;
+            --primary-hover: #3730A3;
+            --primary-light: #E0E7FF;
+            --secondary: #0284C7;
+            --success: #059669;
+            --success-light: #D1FAE5;
+            --danger: #DC2626;
+            --danger-light: #FEE2E2;
+            --bg-outer: #E2E8F0;
+            --card-bg: #F8FAFC;
+            --card-border: #CBD5E1;
+            --inner-box: #EDF2F7;
+            --text-main: #0F172A;
+            --text-muted: #475569;
+            --border-input: #94A3B8;
+        }
+
+        * { box-sizing: border-box; transition: all 0.2s ease; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-outer);
+            background-image: 
+                radial-gradient(rgba(148, 163, 184, 0.2) 1px, transparent 1px),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%23334155' stroke-width='1.2' stroke-opacity='0.07'%3E%3Cpath d='M40 0 L80 40 L40 80 L0 40 Z'/%3E%3Ccircle cx='40' cy='40' r='12'/%3E%3Cpath d='M40 20 L40 60 M20 40 L60 40'/%3E%3Ccircle cx='40' cy='40' r='4' fill='%23334155' fill-opacity='0.07'/%3E%3Cpath d='M0 0 L15 15 M65 15 L80 0 M80 80 L65 65 M15 65 L0 80'/%3E%3C/g%3E%3C/svg%3E");
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 15px 30px -5px rgba(15, 23, 42, 0.08), 0 6px 12px -6px rgba(15, 23, 42, 0.04);
+            border: 1px solid var(--card-border);
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px dashed var(--card-border);
+            padding-bottom: 24px;
+            margin-bottom: 30px;
+        }
+
+        header .school-badge {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 12px;
+            padding: 6px 16px;
+            border-radius: 50px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border: 1px solid #C7D2FE;
+        }
+
+        h1 { color: var(--text-main); margin: 0 0 6px 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+        p.subtitle { color: var(--text-muted); margin: 0; font-size: 14px; line-height: 1.5; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 700; font-size: 14px; color: var(--text-main); }
+        .form-group input, .form-group select {
+            width: 100%; padding: 12px 16px; border: 1.5px solid var(--border-input);
+            border-radius: 10px; font-size: 15px; font-family: inherit; background: #FFFFFF;
+            color: var(--text-main); outline: none;
+        }
+
+        .quiz-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; background: var(--inner-box); padding: 12px 20px;
+            border-radius: 12px; border: 1px solid var(--card-border);
+        }
+
+        .timer-box {
+            background: var(--danger-light); color: var(--danger); border: 1px solid #FCA5A5;
+            padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 14px;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .question-box { margin-bottom: 25px; padding: 24px; background: var(--inner-box); border-radius: 16px; border: 1px solid var(--card-border); }
+        .question-text { font-weight: 600; font-size: 17px; line-height: 1.6; margin-bottom: 20px; color: var(--text-main); }
+        .options-group { display: flex; flex-direction: column; gap: 12px; }
+
+        .option-btn {
+            padding: 14px 20px; background: #FFFFFF; border: 1.5px solid var(--border-input);
+            border-radius: 12px; text-align: left; cursor: pointer; font-family: inherit;
+            font-size: 15px; color: var(--text-main); font-weight: 500; display: flex; align-items: center;
+        }
+
+        .option-btn:hover { border-color: var(--primary); background: var(--primary-light); transform: translateY(-1px); }
+        .option-btn.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 700; box-shadow: 0 0 0 1px var(--primary); }
+
+        .navigation { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; gap: 10px; }
+
+        button.action-btn {
+            background: var(--primary); color: white; border: none; padding: 12px 24px;
+            border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 15px;
+            font-family: inherit; box-shadow: 0 4px 6px -1px rgba(67, 56, 202, 0.2);
+        }
+
+        button.action-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        button.action-btn:disabled { background: #94A3B8; color: #FFFFFF; box-shadow: none; cursor: not-allowed; transform: none; }
+
+        .result-screen { display: none; text-align: center; }
+        .score-badge {
+            display: inline-flex; justify-content: center; align-items: center;
+            width: 120px; height: 120px; border-radius: 50%; background: var(--primary-light);
+            font-size: 44px; font-weight: 800; color: var(--primary); margin: 20px 0; border: 4px solid #C7D2FE;
+        }
+
+        .motivation-section {
+            text-align: center;
+            margin-top: 35px;
+            border-top: 2px dashed var(--card-border);
+            padding-top: 25px;
+        }
+
+        .motivation-card {
+            background: linear-gradient(135deg, #E0E7FF 0%, #F1F5F9 100%);
+            border: 1.5px solid #C7D2FE;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            position: relative;
+        }
+
+        .motivation-quote {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            line-height: 1.6;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .motivation-author {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-exit { 
+            background: var(--danger) !important; 
+            box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2) !important; 
+        }
+        .btn-exit:hover { 
+            background: #B91C1C !important; 
+        }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 9999;
+            justify-content: center; align-items: center;
+        }
+
+        .modal-content {
+            background: #FFFFFF; padding: 30px; border-radius: 16px; max-width: 450px;
+            width: 90%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--card-border);
+        }
+
+        .warning-badge {
+            display: inline-block; background: var(--danger-light); color: var(--danger);
+            padding: 6px 16px; border-radius: 50px; font-weight: 700; margin: 15px 0; border: 1px solid #FCA5A5;
+        }
+
+        .time-badge-container {
+            background: var(--primary-light); border: 1px solid #C7D2FE; padding: 14px 18px;
+            border-radius: 12px; font-size: 13.5px; color: var(--primary); margin-bottom: 20px;
+            font-weight: 600; display: flex; flex-direction: column; gap: 6px;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div class="container">
+    <header>
+        <span class="school-badge" id="display-sekolah">Memuat Sekolah...</span>
+        <!-- JUDUL UJIAN DINAMIS DARI PANEL ADMIN -->
+        <h1 class="subtitle">PELAKSANAAN <b id="display-judul-ujian"> </b></h1>
+        <p class="subtitle">Mata Pelajaran: <b id="display-mapel">...</b> | Tahun Ajaran: <b id="display-tahun-ajaran">...</b></p>
+    </header>
+
+    <!-- 1. Halaman Login Username & Password -->
+    <div id="login-screen">
+        <h3 style="margin-top:0; margin-bottom: 20px; font-size: 18px; text-align: center;">Login Siswa</h3>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Masukkan Username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Masukkan Password" required autocomplete="current-password">
+                </div>
+            </div>
+            <button id="login-btn" type="submit" class="action-btn" style="width: 100%; padding: 14px;">Masuk Aplikasi</button>
+        </form>
+    </div>
+
+    <!-- 2. Halaman Form Input Data Siswa & Pilih Mata Pelajaran -->
+    <div id="student-input-screen" style="display: none;">
+        <h3 style="margin-top:0; margin-bottom: 20px; font-size: 18px; text-align: center;">Data Siswa & Pilihan Ujian</h3>
+        <form id="student-form" onsubmit="handleStartExam(event)">
+            <div class="form-group">
+                <label for="student-nama">Nama Lengkap</label>
+                <input type="text" id="student-nama" placeholder="Nama Siswa" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="student-kelas">Kelas</label>
+                    <input type="text" id="student-kelas" placeholder="Contoh: X IPA 1" required>
+                </div>
+                <div class="form-group">
+                    <label for="student-absen">Nomor Absen</label>
+                    <input type="text" id="student-absen" placeholder="Contoh: 12" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="student-email">Email Siswa (Opsional)</label>
+                <input type="email" id="student-email" placeholder="nama@sekolah.sch.id">
+            </div>
+
+            <div class="form-group">
+                <label for="select-mapel">Pilih Mata Pelajaran</label>
+                <select id="select-mapel" onchange="onMapelChanged()" required>
+                    <option value="">-- Memuat Mata Pelajaran --</option>
+                </select>
+            </div>
+
+            <div class="time-badge-container">
+                <div>📅 Tanggal Pelaksanaan: <span id="date-info">Memilih Mapel...</span></div>
+                <div>🕒 Jam Pelaksanaan: <span id="time-range-info">Memilih Mapel...</span></div>
+                <div>⏱️ Alokasi Waktu: <span id="duration-info">Memilih Mapel...</span></div>
+            </div>
+
+            <button id="start-btn" type="submit" class="action-btn" style="width: 100%; padding: 14px;" disabled>Pilih Mapel Dahulu</button>
+        </form>
+    </div>
+
+    <!-- 3. Halaman Soal Ujian -->
+    <div id="quiz-screen" style="display: none;">
+        <div class="quiz-header">
+            <span id="student-info" style="font-weight: 600; font-size: 14px;"></span>
+            <div class="timer-box">⏱️ <span id="timer">00:00</span></div>
+            <span id="progress" style="font-weight: 600; color: var(--text-muted); font-size: 14px;">Soal 1</span>
+        </div>
+        
+        <div class="question-box">
+            <div id="question" class="question-text">Memuat soal...</div>
+            <div id="options" class="options-group"></div>
+        </div>
+        <div class="navigation">
+            <button id="prev-btn" class="action-btn" onclick="prevQuestion()" disabled>Sebelumnya</button>
+            <button id="next-btn" class="action-btn" onclick="nextQuestion()">Berikutnya</button>
+            <button id="submit-btn" class="action-btn" style="background: var(--success); display:none;" onclick="manualSubmit()">Selesai & Lihat Nilai</button>
+        </div>
+    </div>
+
+    <!-- 4. Halaman Hasil Ujian -->
+    <div id="result-screen" class="result-screen">
+        <h2 style="margin: 0; color: var(--text-main);">Hasil Penilaian Anda</h2>
+        <div id="result-student-info" style="font-size: 15px; color: var(--text-muted); margin-top: 8px;"></div>
+        
+        <div id="score" class="score-badge">0</div>
+        
+        <p id="stats" style="font-size: 16px; font-weight: 600; margin: 0 0 8px 0;">Jawaban Benar: 0</p>
+        <p id="cheat-stat" style="font-weight: 600; font-size: 14px; margin-top: 0;"></p>
+        
+        <div id="loading-msg" style="display: none; margin: 15px 0; color: var(--secondary); font-weight: 600;">⏳ Mengirim data hasil ujian...</div>
+
+        <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button class="action-btn btn-exit" onclick="exitApplication()">🚪 Keluar</button>
+            <button class="action-btn" style="background: #64748B;" onclick="location.reload()">Ulangi Ujian</button>
+        </div>
+
+        <div class="motivation-section">
+            <h3 style="margin-top:0; font-size: 18px; color: var(--text-main); margin-bottom: 15px;">🌟 Pesan Motivasi Untukmu 🌟</h3>
+            <div class="motivation-card">
+                <div id="quote-text" class="motivation-quote">"Pendidikan adalah senjata paling mematikan di dunia, karena dengan pendidikan, Anda dapat mengubah dunia."</div>
+                <div id="quote-author" class="motivation-author">— Nelson Mandela</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="warning-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top: 0; color: var(--danger);">⚠️ PERINGATAN KECURANGAN</h3>
+        <p style="color: var(--text-muted); font-size: 14px;">Anda terdeteksi meninggalkan halaman/tab ujian!</p>
+        <div id="warning-count" class="warning-badge">Pelanggaran: 1 / 5</div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Dilarang membuka tab/aplikasi lain. Ujian akan dikumpulkan otomatis jika pelanggaran mencapai batas.</p>
+        <button class="action-btn" style="width: 100%; background: var(--danger);" onclick="closeWarningModal()">Saya Mengerti</button>
+    </div>
+</div>
+
+<script>
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTDaDxv6Bv8QMntCzKF5D3rg1QIsFR5imcY9q103Tvh3s4X2loxaEbTpMWKAdy9_kGg/exec';
+
+let studentData = { sekolah: "", mapel: "", judulUjian: "", tahunAjaran: "", nama: "", kelas: "", absen: "", email: "" };
+let isQuizActive = false;
+let cheatCount = 0;
+const MAX_CHEAT_ALLOWED = 5;
+
+let quizData = [];
+let userAnswers = [];
+let currentQuestion = 0;
+let finalCalculatedScore = 0;
+let totalCorrectAnswers = 0;
+
+let quizDurationMinutes = 30;
+let tanggalUjian = "-";
+let jamMulai = "-";
+let jamSelesai = "-";
+let timeRemaining = 0; 
+let timerInterval = null;
+
+const motivationQuotes = [
+    { quote: "Pendidikan adalah senjata paling mematikan di dunia, karena dengan pendidikan, Anda dapat mengubah dunia.", author: "Nelson Mandela" },
+    { quote: "Hiduplah seolah engkau mati besok. Belajarlah seolah engkau hidup selamanya.", author: "Mahatma Gandhi" },
+    { quote: "Investasi dalam pengetahuan selalu membayar bunga terbaik.", author: "Benjamin Franklin" },
+    { quote: "Barangsiapa tidak merasakan pahitnya belajar ia akan merasakan hinanya kebodohan sepanjang hidupnya.", author: "Imam Syafi'i" },
+    { quote: "Masa depan adalah milik mereka yang menyiapkan hari ini.", author: "Malcolm X" }
+];
+
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
+function formatDateOnly(dateStr) {
+    if (!dateStr || typeof dateStr !== 'string') return "-";
+    if (dateStr.includes('T')) {
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+    }
+    return dateStr;
+}
+
+function formatTimeOnly(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return "-";
+    if (timeStr.includes('T')) {
+        const date = new Date(timeStr);
+        if (!isNaN(date.getTime())) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+    }
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+    }
+    return timeStr;
+}
+
+function parseTimeToMinutes(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    if (timeStr.includes('T')) {
+        const date = new Date(timeStr);
+        if (!isNaN(date.getTime())) {
+            return date.getHours() * 60 + date.getMinutes();
+        }
+    }
+    if (!timeStr.includes(':')) return null;
+    const parts = timeStr.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    if (isNaN(hours) || isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+}
+
+async function handleLogin(event) {
+    event.preventDefault();
+    const usernameInput = document.getElementById('username').value.trim();
+    const passwordInput = document.getElementById('password').value.trim();
+    const loginBtn = document.getElementById('login-btn');
+
+    loginBtn.disabled = true;
+    loginBtn.innerText = "Memverifikasi...";
+
+    const loginUrl = `${GOOGLE_SCRIPT_URL}?action=loginSiswa&username=${encodeURIComponent(usernameInput)}&password=${encodeURIComponent(passwordInput)}`;
+
+    try {
+        const response = await fetch(loginUrl, {
+            method: 'GET',
+            redirect: 'follow'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP Error status: ${response.status}`);
+        }
+
+        const res = await response.json();
+
+        if (res.status === "success") {
+            if (res.student) {
+                if (res.student.nama) document.getElementById('student-nama').value = res.student.nama;
+                if (res.student.kelas) document.getElementById('student-kelas').value = res.student.kelas;
+                if (res.student.absen) document.getElementById('student-absen').value = res.student.absen;
+                if (res.student.email) document.getElementById('student-email').value = res.student.email;
+            }
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('student-input-screen').style.display = 'block';
+
+            fetchMapelList();
+        } else {
+            alert("❌ Login Gagal: " + (res.message || "Username atau Password salah!"));
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Masuk Aplikasi";
+        }
+    } catch (err) {
+        console.error("Login Error:", err);
+        
+        let offlineConfirm = confirm(
+            "⚠️ Tidak dapat terhubung ke Google Apps Script.\n\n" +
+            "Pastikan Apps Script telah di-deploy dengan opsi:\n" +
+            "• Execute as: 'Me'\n" +
+            "• Who has access: 'Anyone'\n\n" +
+            "Klik 'OK' untuk tetap melanjutkan secara Manual / Offline."
+        );
+
+        if (offlineConfirm) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('student-input-screen').style.display = 'block';
+            fetchMapelList();
+        } else {
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Masuk Aplikasi";
+        }
+    }
+}
+
+function fetchMapelList() {
+    const selectMapel = document.getElementById('select-mapel');
+    const startBtn = document.getElementById('start-btn');
+    
+    fetch(`${GOOGLE_SCRIPT_URL}?action=getMapelList&onlyActive=true`, { method: 'GET', redirect: 'follow' })
+        .then(res => res.json())
+        .then(list => {
+            selectMapel.innerHTML = '<option value="">-- Pilih Mata Pelajaran --</option>';
+            if (!Array.isArray(list) || list.length === 0) {
+                alert("Belum ada Mata Pelajaran Aktif yang dapat diakses saat ini.");
+                startBtn.innerText = "Tidak Ada Mapel Aktif";
+                return;
+            }
+            list.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.innerText = m;
+                selectMapel.appendChild(opt);
+            });
+            startBtn.innerText = "Pilih Mapel Dahulu";
+        })
+        .catch(err => {
+            console.error("Gagal mengambil daftar mapel:", err);
+            selectMapel.innerHTML = '<option value="Umum">Umum (Offline Mode)</option>';
+            startBtn.innerText = "Mulai (Mode Offline)";
+            startBtn.disabled = false;
+        });
+}
+
+function onMapelChanged() {
+    const selectedMapel = document.getElementById('select-mapel').value;
+    if (selectedMapel) {
+        fetchExamData(selectedMapel);
+    }
+}
+
+function fetchExamData(mapel) {
+    const startBtn = document.getElementById('start-btn');
+    const durationInfo = document.getElementById('duration-info');
+    const timeRangeInfo = document.getElementById('time-range-info');
+    const dateInfo = document.getElementById('date-info');
+    
+    startBtn.disabled = true;
+    startBtn.innerText = "Memuat Data Soal...";
+
+    fetch(`${GOOGLE_SCRIPT_URL}?action=getAdminData&mapel=${encodeURIComponent(mapel)}`, { method: 'GET', redirect: 'follow' })
+        .then(response => response.json())
+        .then(data => {
+            studentData.mapel = data.mapel || mapel;
+            studentData.sekolah = data.sekolah || "SEKOLAH";
+            studentData.judulUjian = data.judul_ujian || "UJIAN";
+            studentData.tahunAjaran = data.tahun_ajaran || data.tahunAjaran || "2026/2027";
+
+            // Menampilkan Judul Ujian dan data pendukung secara dinamis ke Header Siswa
+            document.getElementById('display-sekolah').innerText = studentData.sekolah;
+            document.getElementById('display-judul-ujian').innerText = studentData.judulUjian;
+            document.getElementById('display-mapel').innerText = studentData.mapel;
+            document.getElementById('display-tahun-ajaran').innerText = studentData.tahunAjaran;
+
+            tanggalUjian = data.tanggal_ujian || data.tanggal || "-";
+            jamMulai = data.jam_mulai || "-";
+            jamSelesai = data.jam_selesai || "-";
+
+            const formattedDate = formatDateOnly(tanggalUjian);
+            const formattedStart = formatTimeOnly(jamMulai);
+            const formattedEnd = formatTimeOnly(jamSelesai);
+
+            dateInfo.innerText = formattedDate !== "-" ? formattedDate : "Belum Ditentukan";
+            timeRangeInfo.innerText = `${formattedStart} WIB - ${formattedEnd} WIB`;
+
+            let rawQuestions = [];
+            if (data.questions && data.questions.length > 0) {
+                rawQuestions = data.questions;
+                const startMinutes = parseTimeToMinutes(jamMulai);
+                const endMinutes = parseTimeToMinutes(jamSelesai);
+
+                if (startMinutes !== null && endMinutes !== null && endMinutes > startMinutes) {
+                    quizDurationMinutes = endMinutes - startMinutes;
+                } else {
+                    quizDurationMinutes = 30;
+                }
+            }
+
+            quizData = rawQuestions.map((q, idx) => {
+                let options = [q.optA, q.optB, q.optC, q.optD, q.optE].filter(o => o !== undefined && o !== "");
+                let parsedAns = parseInt(q.ans, 10);
+                if (isNaN(parsedAns)) parsedAns = 0;
+
+                return {
+                    no: idx + 1,
+                    q: q.q,
+                    options: options,
+                    ans: parsedAns,
+                    exp: q.exp || ""
+                };
+            });
+
+            if (quizData.length > 0) {
+                userAnswers = new Array(quizData.length).fill(null);
+                startBtn.disabled = false;
+                startBtn.innerText = "Mulai Ujian";
+                durationInfo.innerText = `${quizDurationMinutes} Menit`;
+            } else {
+                alert("Data soal untuk Mata Pelajaran ini masih kosong.");
+                startBtn.innerText = "Soal Kosong";
+                durationInfo.innerText = "-";
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching exam data:", error);
+            alert("Gagal mengambil data soal untuk mata pelajaran ini.");
+            startBtn.innerText = "Gagal Memuat Soal";
+        });
+}
+
+function handleStartExam(event) {
+    event.preventDefault();
+    if (quizData.length === 0) {
+        alert("Soal belum berhasil dimuat. Silakan pilih mata pelajaran kembali.");
+        return;
+    }
+
+    const now = new Date();
+    
+    if (tanggalUjian && tanggalUjian !== "-") {
+        const formattedTanggalUjian = formatDateOnly(tanggalUjian);
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        if (formattedTanggalUjian !== todayStr) {
+            alert(`⚠️ Ujian ini dijadwalkan pada tanggal ${formattedTanggalUjian}. Hari ini adalah tanggal ${todayStr}.`);
+            return;
+        }
+    }
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = parseTimeToMinutes(jamMulai);
+    const endMinutes = parseTimeToMinutes(jamSelesai);
+
+    if (startMinutes !== null && endMinutes !== null) {
+        if (currentMinutes < startMinutes) {
+            alert(`⚠️ Ujian belum dimulai! Ujian baru dapat diakses pada jam ${formatTimeOnly(jamMulai)} WIB.`);
+            return;
+        }
+
+        if (currentMinutes >= endMinutes) {
+            alert(`❌ Waktu ujian telah habis! Jam pelaksanaan telah selesai pada jam ${formatTimeOnly(jamSelesai)} WIB.`);
+            return;
+        }
+    }
+
+    studentData.nama = document.getElementById('student-nama').value.trim();
+    studentData.kelas = document.getElementById('student-kelas').value.trim();
+    studentData.absen = document.getElementById('student-absen').value.trim();
+    studentData.email = document.getElementById('student-email').value.trim() || "-";
+
+    document.getElementById('student-info').innerText = `${studentData.nama} (${studentData.kelas} / Absen: ${studentData.absen})`;
+    document.getElementById('student-input-screen').style.display = 'none';
+    document.getElementById('quiz-screen').style.display = 'block';
+
+    isQuizActive = true;
+
+    if (endMinutes !== null) {
+        const remainingMinutesRealtime = endMinutes - currentMinutes;
+        const actualMinutes = Math.min(quizDurationMinutes, remainingMinutesRealtime);
+        timeRemaining = actualMinutes * 60;
+    } else {
+        timeRemaining = quizDurationMinutes * 60;
+    }
+
+    startTimer();
+    loadQuestion();
+}
+
+function startTimer() {
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+        if (!isQuizActive) {
+            clearInterval(timerInterval);
+            return;
+        }
+
+        timeRemaining--;
+        updateTimerDisplay();
+
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            isQuizActive = false;
+            alert("⏰ Waktu Mengerjakan Telah Habis! Ujian akan dikumpulkan otomatis.");
+            submitQuiz();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    document.getElementById('timer').innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function loadQuestion() {
+    const qData = quizData[currentQuestion];
+    document.getElementById('progress').innerText = `Soal ${currentQuestion + 1} dari ${quizData.length}`;
+    document.getElementById('question').innerHTML = `${qData.no}. ${qData.q}`;
+
+    const optionsContainer = document.getElementById('options');
+    optionsContainer.innerHTML = '';
+
+    const labels = ["A", "B", "C", "D", "E"];
+    qData.options.forEach((option, index) => {
+        if (!option) return;
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        if (userAnswers[currentQuestion] === index) {
+            btn.classList.add('selected');
+        }
+        btn.innerHTML = `<b>${labels[index]}.</b>&nbsp; ${option}`;
+        btn.onclick = () => selectOption(index);
+        optionsContainer.appendChild(btn);
+    });
+
+    document.getElementById('prev-btn').disabled = currentQuestion === 0;
+    
+    if (currentQuestion === quizData.length - 1) {
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('submit-btn').style.display = 'block';
+    } else {
+        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('submit-btn').style.display = 'none';
+    }
+
+    renderMathAndDiagrams();
+}
+
+function renderMathAndDiagrams() {
+    renderMathInElement(document.getElementById('quiz-screen'), {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+        ],
+        throwOnError : false
+    });
+
+    try { mermaid.run({ querySelector: '.mermaid' }); } catch(e){}
+}
+
+function selectOption(index) {
+    userAnswers[currentQuestion] = index;
+    loadQuestion();
+}
+
+function nextQuestion() {
+    if (currentQuestion < quizData.length - 1) {
+        currentQuestion++;
+        loadQuestion();
+    }
+}
+
+function prevQuestion() {
+    if (currentQuestion > 0) {
+        currentQuestion--;
+        loadQuestion();
+    }
+}
+
+function manualSubmit() {
+    if (confirm("Apakah Anda yakin ingin mengumpulkan ujian ini?")) {
+        clearInterval(timerInterval);
+        isQuizActive = false;
+        submitQuiz();
+    }
+}
+
+function submitQuiz(customViolationText = "") {
+    clearInterval(timerInterval);
+    isQuizActive = false;
+    totalCorrectAnswers = 0;
+
+    quizData.forEach((q, index) => {
+        const isCorrect = userAnswers[index] === q.ans;
+        if (isCorrect) totalCorrectAnswers++;
+    });
+
+    finalCalculatedScore = Math.round((totalCorrectAnswers / quizData.length) * 100);
+    
+    document.getElementById('result-student-info').innerText = `Nama: ${studentData.nama} | Kelas: ${studentData.kelas} | No. Absen: ${studentData.absen}`;
+    document.getElementById('score').innerText = finalCalculatedScore;
+    document.getElementById('stats').innerText = `Jawaban Benar: ${totalCorrectAnswers} / ${quizData.length}`;
+    
+    const cheatElem = document.getElementById('cheat-stat');
+    if (customViolationText) {
+        cheatElem.style.color = "var(--danger)";
+        cheatElem.innerText = `⚠️ ${customViolationText}`;
+    } else if (cheatCount > 0) {
+        cheatElem.style.color = "var(--danger)";
+        cheatElem.innerText = `⚠️ Terdeteksi ${cheatCount} Kali Pelanggaran Membuka Tab Lain`;
+    } else {
+        cheatElem.style.color = "var(--success)";
+        cheatElem.innerText = `✅ Ujian Bersih (0 Pelanggaran)`;
+    }
+
+    showRandomMotivation();
+
+    document.getElementById('quiz-screen').style.display = 'none';
+    document.getElementById('warning-modal').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
+    document.getElementById('loading-msg').style.display = 'block';
+
+    const formData = new FormData();
+    formData.append('action', 'submitAnswer');
+    formData.append('sekolah', studentData.sekolah);
+    formData.append('mapel', studentData.mapel);
+    formData.append('tahun_ajaran', studentData.tahunAjaran);
+    formData.append('nama', studentData.nama);
+    formData.append('kelas', studentData.kelas);
+    formData.append('absen', studentData.absen);
+    formData.append('email', studentData.email);
+    formData.append('nilai', finalCalculatedScore.toString());
+    formData.append('benar', `${totalCorrectAnswers} / ${quizData.length}`);
+    formData.append('pelanggaran', customViolationText ? "99 (Dua Layar)" : cheatCount.toString());
+
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+    }).then(() => {
+        document.getElementById('loading-msg').style.display = 'none';
+        alert("✅ Nilai & Catatan Hasil Ujian Berhasil Dikirim ke Server!");
+    }).catch(err => {
+        document.getElementById('loading-msg').style.display = 'none';
+        console.error("Gagal mengirim:", err);
+        alert("Gagal mengirim data. Silakan periksa koneksi internet Anda.");
+    });
+}
+
+function showRandomMotivation() {
+    const randomIndex = Math.floor(Math.random() * motivationQuotes.length);
+    const selected = motivationQuotes[randomIndex];
+    document.getElementById('quote-text').innerText = `"${selected.quote}"`;
+    document.getElementById('quote-author').innerText = `— ${selected.author}`;
+}
+
+function exitApplication() {
+    if (confirm("Apakah Anda yakin ingin keluar dari aplikasi?")) {
+        location.reload();
+    }
+}
+
+// ==================== DETEKSI PELANGGARAN TAB & DUA LAYAR ====================
+
+// 1. Deteksi Pindah Tab / Minimized Window (Masih menggunakan sistem peringatan bertahap max 5x)
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden && isQuizActive) {
+        cheatCount++;
+        document.getElementById('warning-count').innerText = `Pelanggaran: ${cheatCount} / ${MAX_CHEAT_ALLOWED}`;
+        
+        // Kembalikan teks warning standar tab
+        document.querySelector('#warning-modal h3').innerText = "⚠️ PERINGATAN KECURANGAN";
+        document.querySelector('#warning-modal p').innerText = "Anda terdeteksi meninggalkan halaman/tab ujian!";
+        
+        if (cheatCount >= MAX_CHEAT_ALLOWED) {
+            isQuizActive = false;
+            document.getElementById('warning-modal').style.display = 'none';
+            alert("❌ Anda melebihi batas kecurangan! Ujian otomatis dikumpulkan.");
+            submitQuiz();
+        } else {
+            document.getElementById('warning-modal').style.display = 'flex';
+        }
+    }
+});
+
+// 2. DETEKSI DUA LAYAR / SPLIT SCREEN (Langsung keluar & simpan nilai ke Google Apps Script)
+window.addEventListener("resize", function() {
+    if (!isQuizActive) return;
+    
+    // Mengecek rasio ukuran jendela terhadap layar fisik (mengindikasikan split-screen / dua layar berdampingan)
+    const widthRatio = window.innerWidth / screen.width;
+    const heightRatio = window.innerHeight / screen.height;
+
+    if (widthRatio < 0.75 || (heightRatio < 0.75 && window.innerWidth < 900)) {
+        isQuizActive = false;
+        alert("❌ PERINGATAN KERAS: Terdeteksi menggunakan dua layar (Split Screen / Multi-Display)!\nUjian Anda dihentikan secara paksa dan nilai langsung disimpan.");
+        submitQuiz("Pelanggaran Berat: Menggunakan Dua Layar / Split Screen");
+    }
+});
+
+// 3. Deteksi Multi-Display (Monitor Tambahan)
+if ('getScreens' in window) {
+    window.addEventListener('screenschange', () => {
+        if (isQuizActive) {
+            isQuizActive = false;
+            alert("❌ PERINGATAN KERAS: Terdeteksi penambahan monitor/layar ganda!\nUjian Anda dihentikan secara paksa dan nilai langsung disimpan.");
+            submitQuiz("Pelanggaran Berat: Menggunakan Monitor/Layar Ganda");
+        }
+    });
+}
+
+function closeWarningModal() {
+    document.getElementById('warning-modal').style.display = 'none';
+}
+</script>
+</body>
+</html>
