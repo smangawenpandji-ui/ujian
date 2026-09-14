@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 
     <style>
         :root { --primary: #4338CA; --primary-hover: #3730A3; --bg: #F1F5F9; --card: #FFFFFF; --text: #0F172A; --border: #CBD5E1; }
@@ -49,13 +48,15 @@
         .toolbar-btn { background: #E2E8F0; color: #1E293B; border: 1px solid #CBD5E1; width: auto; padding: 4px 8px; font-size: 11px; border-radius: 4px; }
         .toolbar-btn:hover { background: #CBD5E1; }
         .preview-content img { max-width: 150px; height: auto; border-radius: 6px; display: block; margin: 4px 0; border: 1px solid #E2E8F0; }
-        .preview-content table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 4px 0; }
-        .preview-content th, .preview-content td { border: 1px solid #CBD5E1; padding: 4px 8px; }
         .action-btns { display: flex; gap: 4px; }
         .live-preview-box { background: #F8FAFC; border: 1px dashed #94A3B8; padding: 10px; border-radius: 8px; margin-bottom: 10px; min-height: 40px; }
         .live-preview-title { font-size: 11px; font-weight: bold; color: #64748B; margin-bottom: 4px; }
         .header-info { display: flex; justify-content: space-between; align-items: center; background: #EEF2FF; padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid var(--primary); }
         
+        /* Token Box Styling */
+        .token-card { background: #FEF3C7; border: 1px solid #F59E0B; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .token-display { font-size: 24px; font-weight: 800; color: #B45309; letter-spacing: 3px; font-family: monospace; }
+
         .menu-section { display: none; }
         .menu-section.active { display: block; }
 
@@ -109,6 +110,18 @@
                     <div id="displayHariTanggal" style="font-size: 14px; font-weight: 700; color: #4338CA;">-</div>
                     <small style="color:#64748B; font-weight:600; margin-top:4px; display:block;">INSTANSI / SEKOLAH:</small>
                     <div id="displaySekolahAktif" style="font-size: 13px; font-weight: 700; color: #1E293B;">-</div>
+                </div>
+            </div>
+
+            <!-- PANEL TOKEN UJIAN OTOMATIS -->
+            <div class="token-card">
+                <div>
+                    <small style="color: #92400E; font-weight: bold; display: block;">🔑 TOKEN UJIAN SISWA AKTIF (BERUBAH OTOMATIS TIAP 15 MENIT):</small>
+                    <div id="currentExamToken" class="token-display">------</div>
+                    <small id="tokenCountdown" style="color: #78350F; font-size: 12px; font-weight: 600;">Pembaruan token berikutnya dalam: 15:00</small>
+                </div>
+                <div>
+                    <button onclick="generateNewToken()" style="background: #D97706; margin-bottom: 0; padding: 10px 16px;">🔄 Acak Token Baru</button>
                 </div>
             </div>
 
@@ -202,9 +215,7 @@
 
                 <label><b>Teks Soal / Pertanyaan:</b></label>
                 <div class="toolbar">
-                    <button type="button" class="toolbar-btn" onclick="insertTemplate('qText', 'math')">➕ Rumus ($x^2$)</button>
-                    <button type="button" class="toolbar-btn" onclick="insertTemplate('qText', 'diagram')">➕ Diagram (Mermaid)</button>
-                    <button type="button" class="toolbar-btn" onclick="insertTemplate('qText', 'table')">➕ Tabel HTML</button>
+                    <button type="button" class="toolbar-btn" onclick="insertEquation('qText')">➕ Sisipkan Equation (Rumus)</button>
                     <button type="button" class="toolbar-btn" onclick="triggerImgUpload('qText')">🖼️ Sisipkan Gambar</button>
                 </div>
                 <textarea id="qText" rows="3" placeholder="Ketik soal di sini..." oninput="updateLivePreview('qText')"></textarea>
@@ -217,7 +228,7 @@
                     <div class="opt-card">
                         <label><b>Pilihan A:</b></label>
                         <div class="toolbar">
-                            <button type="button" class="toolbar-btn" onclick="insertTemplate('optA', 'math')">➕ Rumus</button>
+                            <button type="button" class="toolbar-btn" onclick="insertEquation('optA')">➕ Equation</button>
                             <button type="button" class="toolbar-btn" onclick="triggerImgUpload('optA')">🖼️ Gambar</button>
                         </div>
                         <textarea id="optA" rows="2" placeholder="Opsi A" oninput="updateLivePreview('optA')"></textarea>
@@ -227,7 +238,7 @@
                     <div class="opt-card">
                         <label><b>Pilihan B:</b></label>
                         <div class="toolbar">
-                            <button type="button" class="toolbar-btn" onclick="insertTemplate('optB', 'math')">➕ Rumus</button>
+                            <button type="button" class="toolbar-btn" onclick="insertEquation('optB')">➕ Equation</button>
                             <button type="button" class="toolbar-btn" onclick="triggerImgUpload('optB')">🖼️ Gambar</button>
                         </div>
                         <textarea id="optB" rows="2" placeholder="Opsi B" oninput="updateLivePreview('optB')"></textarea>
@@ -237,7 +248,7 @@
                     <div class="opt-card">
                         <label><b>Pilihan C:</b></label>
                         <div class="toolbar">
-                            <button type="button" class="toolbar-btn" onclick="insertTemplate('optC', 'math')">➕ Rumus</button>
+                            <button type="button" class="toolbar-btn" onclick="insertEquation('optC')">➕ Equation</button>
                             <button type="button" class="toolbar-btn" onclick="triggerImgUpload('optC')">🖼️ Gambar</button>
                         </div>
                         <textarea id="optC" rows="2" placeholder="Opsi C" oninput="updateLivePreview('optC')"></textarea>
@@ -247,7 +258,7 @@
                     <div class="opt-card">
                         <label><b>Pilihan D:</b></label>
                         <div class="toolbar">
-                            <button type="button" class="toolbar-btn" onclick="insertTemplate('optD', 'math')">➕ Rumus</button>
+                            <button type="button" class="toolbar-btn" onclick="insertEquation('optD')">➕ Equation</button>
                             <button type="button" class="toolbar-btn" onclick="triggerImgUpload('optD')">🖼️ Gambar</button>
                         </div>
                         <textarea id="optD" rows="2" placeholder="Opsi D" oninput="updateLivePreview('optD')"></textarea>
@@ -257,7 +268,7 @@
                     <div class="opt-card">
                         <label><b>Pilihan E:</b></label>
                         <div class="toolbar">
-                            <button type="button" class="toolbar-btn" onclick="insertTemplate('optE', 'math')">➕ Rumus</button>
+                            <button type="button" class="toolbar-btn" onclick="insertEquation('optE')">➕ Equation</button>
                             <button type="button" class="toolbar-btn" onclick="triggerImgUpload('optE')">🖼️ Gambar</button>
                         </div>
                         <textarea id="optE" rows="2" placeholder="Opsi E" oninput="updateLivePreview('optE')"></textarea>
@@ -326,7 +337,6 @@
                 <h3>👨‍🎓 Menu Input Data Siswa & Reset Sesi Login</h3>
                 <p style="color:#64748B; font-size:13px;">Kelola akun siswa, tambahkan masal, serta buka status login akun yang terkunci/aktif.</p>
 
-                <!-- IMPORT DATA SISWA EXCEL -->
                 <div class="import-box">
                     <label><b>📥 Import Data Siswa dari Excel (.xlsx / .csv):</b></label>
                     <input type="file" id="fileImportSiswa" accept=".xlsx, .xls, .csv" style="margin-top: 5px;">
@@ -410,7 +420,7 @@
 </div>
 
 <script>
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyPTDaDxv6Bv8QMntCzKF5D3rg1QIsFR5imcY9q103Tvh3s4X2loxaEbTpMWKAdy9_kGg/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-ASdtgc-PvP1lC_9D2d1zzYgtCN9Qln47djAHHVxpXzyM3fKgm4p9eCPxsJYd9Gflrg/exec';
 const ADMIN_PASSWORD_DEFAULT = "ngawen58254";
 
 let mapelDataList = []; 
@@ -421,7 +431,9 @@ let targetInputIdForImage = "";
 let editIndex = -1; 
 let currentMapel = "";
 
-mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+let activeToken = "------";
+let tokenTimerInterval = null;
+let tokenSecondsRemaining = 900; 
 
 function getFormattedToday() {
     const today = new Date();
@@ -433,7 +445,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('displayHariTanggal').innerText = getFormattedToday();
 });
 
-// FUNGSI NAVIGASI MENU
 function switchMenu(menuName) {
     const sections = document.querySelectorAll('.menu-section');
     sections.forEach(sec => sec.classList.remove('active'));
@@ -455,6 +466,7 @@ function loginAdmin() {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('admin-dashboard').style.display = 'flex';
         fetchMapelList();
+        initTokenSystem();
     } else {
         alert("Password Salah!");
     }
@@ -465,7 +477,71 @@ function logoutAdmin() {
         document.getElementById('admin-dashboard').style.display = 'none';
         document.getElementById('login-screen').style.display = 'block';
         document.getElementById('admin-pass').value = '';
+        if (tokenTimerInterval) clearInterval(tokenTimerInterval);
     }
+}
+
+function generateRandomToken() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let token = "";
+    for (let i = 0; i < 6; i++) {
+        token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
+}
+
+function initTokenSystem() {
+    let savedToken = sessionStorage.getItem('exam_token');
+    let savedTime = sessionStorage.getItem('token_expire_time');
+    const now = new Date().getTime();
+
+    if (savedToken && savedTime && now < parseInt(savedTime)) {
+        activeToken = savedToken;
+        tokenSecondsRemaining = Math.floor((parseInt(savedTime) - now) / 1000);
+    } else {
+        generateNewToken();
+    }
+
+    if (tokenTimerInterval) clearInterval(tokenTimerInterval);
+    tokenTimerInterval = setInterval(updateTokenCountdown, 1000);
+}
+
+function generateNewToken() {
+    activeToken = generateRandomToken();
+    tokenSecondsRemaining = 900; 
+    
+    const expireTime = new Date().getTime() + (tokenSecondsRemaining * 1000);
+    sessionStorage.setItem('exam_token', activeToken);
+    sessionStorage.setItem('token_expire_time', expireTime);
+
+    document.getElementById('currentExamToken').innerText = activeToken;
+    syncTokenToBackend(activeToken);
+}
+
+function updateTokenCountdown() {
+    tokenSecondsRemaining--;
+
+    if (tokenSecondsRemaining <= 0) {
+        generateNewToken();
+        return;
+    }
+
+    const minutes = Math.floor(tokenSecondsRemaining / 60);
+    const seconds = tokenSecondsRemaining % 60;
+    const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    
+    document.getElementById('currentExamToken').innerText = activeToken;
+    document.getElementById('tokenCountdown').innerText = `Pembaruan token berikutnya dalam: ${formattedTime}`;
+}
+
+function syncTokenToBackend(token) {
+    const payload = new URLSearchParams();
+    payload.append('action', 'updateActiveToken');
+    payload.append('token', token);
+    payload.append('mapel', currentMapel || 'General');
+
+    fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: payload })
+        .catch(err => console.error("Gagal sinkronisasi token otomatis:", err));
 }
 
 function updateLivePreview(targetId) {
@@ -482,15 +558,6 @@ function updateLivePreview(targetId) {
         ],
         throwOnError: false
     });
-
-    try {
-        const mermaidNodes = previewBox.querySelectorAll('.mermaid');
-        if (mermaidNodes.length > 0) {
-            mermaid.run({ nodes: mermaidNodes });
-        }
-    } catch (e) {
-        console.log("Mermaid live preview error", e);
-    }
 }
 
 function fetchMapelList() {
@@ -689,7 +756,6 @@ function saveSettings() {
         });
 }
 
-// FUNGSI KELOLA DATA SISWA & RESET LOGIN SESI
 function tambahSiswa() {
     const nisn = document.getElementById('siswaNisn').value.trim();
     const nama = document.getElementById('siswaNama').value.trim();
@@ -891,21 +957,18 @@ function deleteResult(index) {
         .catch(() => alert("❌ Gagal menghapus data di Google Sheets."));
 }
 
-function insertTemplate(targetId, type) {
+// FUNGSI MENYISIPKAN RUMUS (EQUATION) MENGGUNAKAN KATEX
+function insertEquation(targetId) {
     const inputArea = document.getElementById(targetId);
-    let template = "";
-
-    if (type === 'math') {
-        template = " $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$ ";
-    } else if (type === 'diagram') {
-        template = "\n<pre class=\"mermaid\">\ngraph TD;\n    A[Mulai] --> B{Proses};\n    B -->|Ya| C[Selesai];\n    B -->|Tidak| A;\n</pre>\n";
-    } else if (type === 'table') {
-        template = "\n<table>\n  <tr><th>No</th><th>Kategori</th></tr>\n  <tr><td>1</td><td>Data Contoh</td></tr>\n</table>\n";
+    let latexInput = prompt("Masukkan rumus matematika dalam format LaTeX (contoh: \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} atau x^2 + y^2 = r^2):");
+    
+    if (latexInput && latexInput.trim() !== "") {
+        // Format inline math dengan $...$
+        const mathSnippet = ` $${latexInput.trim()}$ `;
+        inputArea.value += mathSnippet;
+        inputArea.focus();
+        updateLivePreview(targetId);
     }
-
-    inputArea.value += template;
-    inputArea.focus();
-    updateLivePreview(targetId);
 }
 
 function triggerImgUpload(targetId) {
@@ -963,10 +1026,6 @@ function renderQuestionsTable() {
         tbody.appendChild(tr);
     });
 
-    renderMathAndDiagrams();
-}
-
-function renderMathAndDiagrams() {
     renderMathInElement(document.getElementById('tableSoal'), {
         delimiters: [
             {left: '$$', right: '$$', display: true},
@@ -974,12 +1033,6 @@ function renderMathAndDiagrams() {
         ],
         throwOnError : false
     });
-
-    try {
-        mermaid.run({ querySelector: '#tableSoal .mermaid' });
-    } catch(e) {
-        console.log("Mermaid preview log", e);
-    }
 }
 
 function addQuestion() {
